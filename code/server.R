@@ -1,0 +1,1120 @@
+source('Functions.R')
+libraries()
+
+WD <- getwd()
+shinyServer(function(input, output, session) {
+  
+  ##=============================================================================
+  ##
+  ##                                  TAB 1 (ASCII)
+  ##
+  ##=============================================================================
+  
+  PATH <- reactive({
+    
+    if (is.null(input$ascii)){
+      return(NULL)
+    }else{
+      return(input$ascii)
+    }
+  })
+  
+  ASCII <- reactive({
+    if (is.null(PATH())){
+      return(NULL)
+    }else{
+      return(getASCII(PATH()))
+    }
+  })
+  
+  output$ascii.status <- renderUI({
+    
+    if(is.null(ASCII())){
+      tags$b(tags$em(""))
+    }else{
+      if(names(ASCII())[1] %in% "STATUS"){
+        tags$b(tags$em("Selected File is NOT an ASCII Layout File"))
+      }else{
+        tags$b(tags$em("ASCII FILE LOADED"))
+      }
+      
+    }
+    
+  })
+  
+  
+  output$record.type <- renderUI({
+    if(is.null(ASCII())){
+      return(NULL)
+    }else if(names(ASCII())[1] %in% "STATUS"){
+      return(NULL)
+    }else{
+      selectizeInput("recordtype",
+                     "Record Type",
+                     selected = "Select",
+                     choices = c("Select", ASCII()$`Record Type`),
+                     multiple = F
+      )
+      
+    }
+  })
+  
+  output$ascii.table <- DT::renderDataTable({
+    
+    if(is.null(ASCII())){
+      return(NULL)
+    }else if(is.null(PATH())){
+      return(NULL)
+    }else if(is.null(input$recordtype)){
+      return(NULL)
+    }else if(input$recordtype %in% "Select"){
+      return(NULL)
+    }else if(names(ASCII())[1] %in% "STATUS"){
+      return(NULL)
+    }else{
+      
+      table <- ASCII() %>% 
+        filter(`Record Type` %in% input$recordtype )%>% 
+        filter(`Variable Name` != "rectype") %>%
+        select(c(2:6))
+      
+      table$`Minimum value` <- as.integer(table$`Minimum value`)
+      table$`Maximum value` <- as.integer(table$`Maximum value`)
+      
+      datatable(table,rownames = F)
+    }
+  })
+  
+  
+  
+  ##=============================================================================
+  ##
+  ##                                  TAB 2 (CUTPOINTS)
+  ##
+  ##=============================================================================
+  
+  PathtoCutpoints <- eventReactive(input$cutpointTables,{
+    
+    if(input$cutpointTables <= 0) return(NULL)
+    filepaths <- choose.files(default = "C:/Users",
+                              caption = "Select tables",
+                              multi = T
+    )
+    if(length(filepaths) == 0) return(NULL)
+    
+    return(filepaths)
+  }) 
+  
+  CutpointFiles <- reactive({
+    
+    if(is.null(PathtoCutpoints())) return(NULL)
+    filepaths <- PathtoCutpoints()
+    foreach(i=1:length(filepaths)) %dopar%{
+      source('Functions.R')
+      return(getCUTPOINTS(filepaths[i]))
+    } -> tables
+    
+    foreach(i=1:length(tables),.combine = c ) %dopar%{
+      if(is.null(tables[[i]])) return(T)
+      if(!is.data.table(tables[[i]])) return(T)
+      return(FALSE)
+    } -> checkTables
+    
+    if(sum(checkTables) != 0 ) return(NULL)
+    
+    filenames <- foreach(i=1:length(filepaths), .combine = c) %do%{ return(stri_split(basename(filepaths[i]), fixed = ".")[[1]][1])} 
+    names(tables) <- filenames; rm(filenames); rm(filepaths)
+    
+    return(tables)
+    
+  })
+  
+  output$cutpointTablesUploadStatus <- renderUI({
+    if(is.null(CutpointFiles())){
+      return(tags$b(tags$em("NO SELECTION OR FILE(s) CAN'T BE LOADED")))
+    }else{
+      return(tags$b(tags$em("LOADED")))
+    }
+  })
+  
+  
+  
+  output$SelectCutpointTable <- renderUI({
+    
+    
+    if(is.null(CutpointFiles()))return(NULL)
+    
+    selectizeInput("displayCutpointTable",
+                   "View Table",
+                   selected = "Select",
+                   choices = c("Select",names(CutpointFiles())),
+                   multiple = F,
+                   width = '70%'
+    )
+    
+  })
+  
+  
+  output$ViewCutpointTable <- DT::renderDataTable({
+    
+    
+    if(is.null(CutpointFiles())) return(NULL)
+    if(is.null(input$displayCutpointTable)) return(NULL)
+    if("Select" %in% input$displayCutpointTable) return(NULL)
+    if(length(input$displayCutpointTable)== 0)  return(NULL)
+    
+    table <- CutpointFiles()[[which(names(CutpointFiles()) %in% input$displayCutpointTable)]]
+    table$Subject <- gsub("\\[","",table$Subject)
+    table$Subject <- gsub("\\]","",table$Subject)
+    table$Subject <- gsub("\\(","",table$Subject)
+    table$Subject <- gsub("\\)","",table$Subject)
+    table$Subject <- as.character(table$Subject)
+    
+    
+    
+    
+    foreach(i =1:dim(table)[2], .combine = c) %dopar%{
+      if(all(is.na(table[[i]])) == TRUE){
+        return(i)
+      }
+    } -> selection
+    
+    if(length(selection) != 0){
+      table <- data.table(table %>% select(-c(selection)))
+    }
+    
+    rm(selection)
+    
+    table[[dim(table)[2]]] <- gsub("\\[","",table[[dim(table)[2]]])
+    table[[dim(table)[2]]] <- gsub("\\]","",table[[dim(table)[2]]])
+    table[[dim(table)[2]]] <- gsub("\\(","",table[[dim(table)[2]]])
+    table[[dim(table)[2]]] <- gsub("\\)","",table[[dim(table)[2]]])
+    table[[dim(table)[2]]] <- as.character(table[[dim(table)[2]]])
+    
+    datatable(
+      table,
+      rownames = F,
+      # selection="multiple",
+      # escape=FALSE,
+      extensions = c(
+        'Buttons',
+        # 'ColReorder'
+        'Responsive'
+      ),
+      
+      options = list(
+        dom = 'Bfrtip',
+        # autoWidth = T,
+        # lengthMednu = list(c(5,10,25,50,100,-1), c("5","10","25","50","100","All")),
+        buttons = list('csv',I('colvis')),
+        # colReorder = TRUE,
+        Responsive = T
+      )
+    )
+    
+    
+  })
+  
+  ##=============================================================================
+  ##
+  ##                                  TAB 3 (DATA QC)
+  ##
+  ##=============================================================================
+  
+  directory <- reactive({
+    if(is.null(input$path)) return(NULL)
+    if("" %in% input$path) return(NULL)
+    if(length(input$path) == 0)return(NULL)
+    setwd(input$path)
+    files <- c(list.files(pattern = "*.txt"), list.files(pattern = "*.csv"))
+    setwd(WD)
+    return(files)
+  })
+  
+  output$fileSelection <- renderUI({
+    if(is.null(directory)) return(NULL)
+    selectizeInput("FileSelection",
+                   "Select File(s)",
+                   choices = c("All",sort(directory())),
+                   multiple = T,
+                   selected = "",
+                   width = '80%'
+                   
+    )
+  })
+  
+  
+  FileSelectionGO <- eventReactive(input$fileSelectionGO,{
+    if(is.null(input$fileSelectionGO)) return(NULL)
+    if(input$fileSelectionGO <= 0) return(NULL)
+    if(is.null(input$FileSelection)) return(NULL)
+    if("" %in% input$FileSelection) return(NULL)
+    
+    
+    setwd(input$path)
+    
+    
+    
+    if(length(input$FileSelection) ==1){
+      
+      if("All" %in% input$FileSelection){
+        selection <-  c(list.files(pattern = "*.txt"), list.files(pattern = "*.csv"))
+        masterFiles <- which(grepl("master", selection, ignore.case = T))
+        if(length(masterFiles)!=0){
+          selection <- selection[-c(which(grepl("master", selection, ignore.case = T)))]
+        }; rm(masterFiles)
+        
+        DataList <- parLapply(makeCluster(detectCores()),selection, getDATA)
+        check <- foreach(i=1:length(DataList),.combine = c) %dopar%{
+          dim(DataList[[i]])[2]
+        }
+        
+        if(length(unique(check)) != 1){
+          rm(check); rm(DataList); rm(selection)
+          return(NULL)
+        }else{
+          DT <- rbindlist(DataList); rm(DataList); rm(check); rm(selection)
+        }
+        
+      }else{
+        DT <- getDATA(input$FileSelection)
+      }
+      
+      
+    }else{
+      
+      if("All" %in% input$FileSelection){
+        selection <-  c(list.files(pattern = "*.txt"), list.files(pattern = "*.csv"))
+        masterFiles <- which(grepl("master", selection, ignore.case = T))
+        if(length(masterFiles)!=0){
+          selection <- selection[-c(which(grepl("master", selection, ignore.case = T)))]
+        }; rm(masterFiles)
+        DataList <- parLapply(makeCluster(detectCores()),selection,getDATA)
+        check <- foreach(i=1:length(DataList),
+                         .combine = c,
+                         .packages = c('base','parallel','doParallel',"snow","doSNOW","data.table")) %dopar%{
+                           dim(DataList[[i]])[2]
+                         }
+        
+        if(length(unique(check)) != 1){
+          rm(check); rm(DataList); rm(selection)
+          return(NULL)
+        }else{
+          DT <- rbindlist(DataList); rm(DataList); rm(check); rm(selection)
+        }
+        
+      }else{
+        
+        DataList <- parLapply(makeCluster(detectCores()),input$FileSelection,getDATA)
+        check <- foreach(i=1:length(DataList),
+                         .combine = c,
+                         .packages = c('base','parallel','doParallel',"snow","doSNOW","data.table")) %dopar%{
+                           dim(DataList[[i]])[2]
+                         }
+        
+        if(length(unique(check)) != 1){
+          rm(check); rm(DataList)
+          return(NULL)
+        }else{
+          DT <- rbindlist(DataList); rm(DataList); rm(check)
+        }
+      }
+    }
+    
+    setwd(WD)
+    return(data.table(DT))
+    
+  })
+  
+  dataset <- reactive({
+    if(is.null(FileSelectionGO())) return(NULL)
+    return(data.table(FileSelectionGO()))
+  })
+  
+  
+  output$recordtype.QC <- renderUI({
+    if(is.null(PATH())){
+      return(NULL)
+    }else if(is.null(ASCII())){
+      return(NULL)
+    }else if(names(ASCII())[1] %in% "STATUS"){
+      return(NULL)
+    }else{
+      selectizeInput("recordtype.qc",
+                     "Select Record Type",
+                     selected = "",
+                     choices = c("", ASCII()$`Record Type`),
+                     multiple = F
+      )
+    }
+  })
+  
+  output$Apply.ASCII <- renderUI({
+    
+    if(is.null(PATH())){
+      return(NULL)
+    }else if(is.null(ASCII())){
+      return(NULL)
+    }else if(names(ASCII())[1] %in% "STATUS"){
+      return(NULL)
+    }else if(is.null(input$recordtype.qc)){
+      return(NULL)
+    }else if("" %in% input$recordtype.qc){
+      return(NULL)
+    }else{
+      
+      radioButtons("Apply.Ascii", 
+                   label = "Apply ASCII Specs",
+                   choices = c("No","Yes"),
+                   selected = "No",
+                   inline = T
+      )
+    }
+    
+    
+  })
+  
+  ApplyASCII <- reactive({
+    
+    if(is.null(input$Apply.Ascii)) return(NULL)
+    if(input$Apply.Ascii %in% "No") return(NULL)
+    
+    table <- ASCII() %>% 
+      filter(`Record Type` %in% input$recordtype.qc )%>% 
+      filter(`Variable Name` != "rectype") %>%
+      select(c(2:6))
+    
+    
+    
+    all.variables <- table$`Variable Name`
+    all.descriptions <- table$`Description`
+    table$`Minimum value` <- as.integer(table$`Minimum value`)
+    table$`Maximum value` <- as.integer(table$`Maximum value`)
+    
+    searchTerms <- c("lev|lvl|pass|gender|ucrxgen|grade|flag|condition|_complete|procomp")
+    Rows <- which(grepl(searchTerms, table$`Variable Name`, ignore.case = T))
+    
+    if(length(Rows) != 0){
+      
+      table <- table[Rows,] %>% select(which(names(table) %in% c("Variable Name","Description","Nominal value definitions")))
+      table <- data.table(table)
+      setnames(table, names(table), c("variable","description","values"))
+      table <- data.table(table %>% filter(!is.na(values)))
+      
+      if(dim(table)[1] !=0){
+        
+        Values <- table$values
+        foreach(i =1: length(Values), .packages = c('stringr','tidyr','foreach'), .combine = rbind) %dopar%{
+          
+          
+          
+          result <- gsub(";",",", Values[i], ignore.case = T)
+          result <- gsub("<", "", result, ignore.case = T)
+          result <- gsub(">", "", result, ignore.case = T)
+          result <- gsub("\\.", ",", result, ignore.case = T)
+          result <- gsub("blank","", result, ignore.case = T)
+          result <- gsub(",$", "", result, ignore.case = T)
+          result <- gsub("^,", "", result, ignore.case = T)
+          
+          result <- str_trim(result)
+          
+          result <- unlist(strsplit(result, ","))
+          dt <- data.frame("code" = result)
+          dt <- separate(dt, code, c("code","description"), sep ="=")
+          
+          foreach(j = 1:length(dt$code)) %do%{
+            if(unlist(strsplit(dt$code[j], " "))[1] %in% "Note"){
+              dt$code[j] <- unlist(strsplit(dt$code[j], " "))[3]
+            }
+          };rm(j)
+          
+          dt$variable <- table$variable[i]
+          
+          return(dt)
+        } -> dt  ; dt <- data.table("variable" =dt$variable, "value" = dt$code, "meaning" = dt$description)
+        
+        
+        GET <- list("all.variables" = all.variables,
+                    "all.descriptions" = all.descriptions,
+                    "map" = dt, "case" = 1)
+        
+      }else{
+        
+        GET <- list("all.variables" = all.variables,
+                    "all.descriptions" = all.descriptions,
+                    "case"= 2)
+        
+      }
+      
+      
+    }else{
+      GET <- list("all.variables" = all.variables,
+                  "all.descriptions" = all.descriptions,
+                  "case"= 2)
+    }
+    
+    
+    
+    
+    
+  })
+  
+  
+  
+  ApplyAscii <- reactive({
+    
+    if(is.null(ApplyASCII())) return(NULL)
+    
+    return(ApplyASCII())
+    
+  }) 
+  
+  
+  
+  output$apply.ascii.message <- renderTable({
+    
+    if(is.null(dataset())) return(NULL)
+    if(is.null(ApplyAscii())) return(NULL)
+    
+    if(all(names(dataset()) %in% str_trim(ApplyAscii()$all.variables)) != T){
+      
+      tableMismatches <- names(dataset()) %in% ApplyAscii()$all.variables
+      tableMismatches <- names(dataset())[which(tableMismatches == F)]
+      
+      asciiMismatches <- ApplyAscii()$all.variables %in% names(dataset())
+      asciiMismatches <- ApplyAscii()$all.variables[which(asciiMismatches %in% FALSE)]
+      
+      table <- data.table("Number of Variables" = c(length(ApplyAscii()$all.variables), length(names(dataset()))),
+                          "Missing Variable(s)" = c(paste0(tableMismatches,collapse = "|"), paste0(asciiMismatches,collapse = "|")))
+      
+      row.names(table) <- c("ASCII","SPREADSHEET")
+      
+      return(table)
+    }else{
+      
+      return(NULL)
+      
+    }
+  })
+  
+  
+  output$table <- DT::renderDataTable({
+    if(is.null(dataset())) return(NULL)
+    
+    
+    
+    
+    if(is.null(ApplyAscii())){
+      
+      table <- dataset()
+      
+      if (names(table)[1] %in% "V1"){
+        table[,V1:= NULL]
+      }
+      
+      colNames <- names(table)
+      foreach(i=1:length(colNames)) %do%{
+        colNames[i] <- str_trim(colNames[i])
+      }
+      setnames(table, names(table), colNames); rm(colNames)
+      foreach(i =1:dim(table)[2], .combine = c) %dopar%{
+        if(all(is.na(table[[i]])) == TRUE){
+          return(i)
+        }
+      } -> selection
+      
+      if(length(selection) != 0){
+        table <- data.table(table %>% select(-c(selection)))
+      }
+      
+      
+      
+    }else if(ApplyAscii()$case == 2){
+      table <- dataset()
+      
+      if (names(table)[1] %in% "V1"){
+        table[,V1:= NULL]
+      }
+      
+      colNames <- names(table)
+      foreach(i=1:length(colNames)) %do%{
+        colNames[i] <- str_trim(colNames[i])
+      }
+      setnames(table, names(table), colNames); rm(colNames)
+      foreach(i =1:dim(table)[2], .combine = c) %dopar%{
+        if(all(is.na(table[[i]])) == TRUE){
+          return(i)
+        }
+      } -> selection
+      
+      if(length(selection) != 0){
+        table <- data.table(table %>% select(-c(selection)))
+      }
+      
+      if(length(names(table) !=0)){
+        setnames(
+          table,
+          names(table)[which(names(table)%in%ApplyAscii()$all.variables)],
+          ApplyAscii()$all.descriptions[which(ApplyAscii()$all.variables %in% names(table))]
+        )
+      }
+      
+    }else{
+      
+      
+      table <- dataset()
+      if(names(table)[1] %in% "V1"){
+        table[,V1:= NULL]
+      }
+      
+      colNames <- names(table)
+      foreach(i=1:length(colNames)) %do%{
+        colNames[i] <- str_trim(colNames[i])
+      }
+      setnames(table, names(table), colNames); rm(colNames)
+      
+      Map <- ApplyAscii()$map
+      
+      foreach(i=1:length(Map$variable)) %do%{
+        Map$variable <- as.character(Map$variable)
+        Map$variable[i] <- str_trim(Map$variable[i])
+      }
+      foreach(i=1:length(Map$value)) %do%{
+        Map$value <- as.character(Map$value)
+        Map$value[i] <- str_trim(Map$value[i])
+      }
+      foreach(i=1:length(Map$meaning)) %do%{
+        Map$meaning<- as.character(Map$meaning)
+        Map$meaning[i] <- str_trim(Map$meaning[i])
+      }
+      
+      mappedVariables <- unique(Map$variable)
+      
+      foreach(i = 1:length(mappedVariables)) %do% {
+        map <- Map %>% filter(variable %in% mappedVariables[i])
+        
+        if(mappedVariables[i] %in% names(table)){
+          Col <- table[[which(names(table) %in% mappedVariables[i])]]
+          foreach(j= 1:length(map$value)) %do%{
+            Col[which(as.character(Col) %in% map$value[j])] <- map$meaning[j]
+          }
+          
+          table[[which(names(table) %in% mappedVariables[i])]] <- Col
+        }
+      }
+      
+      table <- data.table(table)
+      
+      foreach(i =1:dim(table)[2], .combine = c) %dopar%{
+        if(all(is.na(table[[i]])) == TRUE){
+          return(i)
+        }
+      } -> selection
+      
+      if(length(selection) != 0){
+        table <- data.table(table %>% select(-c(selection)))
+      }
+      
+      
+      if(length(names(table) !=0)){
+        setnames(
+          table,
+          names(table)[which(names(table)%in%ApplyAscii()$all.variables)],
+          ApplyAscii()$all.descriptions[which(ApplyAscii()$all.variables %in% names(table))]
+        )
+      }
+    }
+    
+    
+    
+    datatable(
+      table,
+      filter = 'top',
+      rownames = F,
+      selection="multiple", 
+      escape=FALSE,
+      extensions = c(
+        'Buttons',
+        'ColReorder',
+        'Responsive'
+      ),
+      
+      options = list(
+        dom = 'Bfrtip',
+        autoWidth = T,
+        lengthMednu = list(c(5,10,25,50,100,-1), c("5","10","25","50","100","All")),
+        buttons = list('excel' ,I('colvis')),
+        colReorder = TRUE,
+        Responsive = T
+      )
+    )
+    
+  })
+  
+  
+  ##=============================================================================
+  ##
+  ##                                  TAB 4 (COMPARING SPREADSHEETS)
+  ##
+  ##=============================================================================
+  
+  
+  
+  Path1 <- eventReactive(input$file1.path,{
+    
+    if(input$file1.path <= 0) return(NULL)
+    filepath <- choose.files(default = "C:/Users",
+                             caption = "Select Spreadsheet", multi = T
+    )
+    if(length(filepath) == 0) return(NULL)
+    
+    return(filepath)
+  }) 
+  
+  Path2 <- eventReactive(input$file2.path,{
+    
+    if(input$file2.path <= 0) return(NULL)
+    filepath <- choose.files(default = "C:/Users",
+                             caption = "Select Spreadsheet", multi = T
+    )
+    if(length(filepath) == 0) return(NULL)
+    return(filepath)
+  }) 
+  
+  File1 <- reactive({
+    
+    if(is.null(Path1())) return(NULL)
+    Get <- getCompareFiles(Path1())
+    if(Get$case == 1) return(NULL)
+    return(list("data"=Get$data, "keyOptions" = Get$keyOptions))
+  })
+  
+  File2 <- reactive({
+    
+    if(is.null(Path2())) return(NULL)
+    Get <- getCompareFiles(Path2())
+    if(Get$case == 1) return(NULL)
+    return(list("data"=Get$data, "keyOptions" = Get$keyOptions))
+  })
+  
+  
+  output$file1.status <- renderUI({
+    if(is.null(File1())){
+      return(tags$b(tags$em("NO SELECTION OR FILE CAN'T BE LOADED")))
+    }else{
+      return(tags$b(tags$em("LOADED")))
+    }
+  })
+  
+  output$file2.status <- renderUI({
+    if(is.null(File2())){
+      return(tags$b(tags$em("NO SELECTION OR FILE CAN'T BE LOADED")))
+    }else{
+      return(tags$b(tags$em("LOADED")))
+    }
+  })
+  
+  output$getKey1 <- renderUI({
+    if(is.null(File1())) return(NULL)
+    selectizeInput("GetKey1","Select Key",
+                   multiple = F,
+                   choices = c("Select",sort(File1()$keyOptions)),
+                   selected = "Select"
+    )
+  })
+  
+  output$getKey2 <- renderUI({
+    if(is.null(File2())) return(NULL)
+    selectizeInput("GetKey2","Select Key",
+                   multiple = F,
+                   choices = c("Select",sort(File2()$keyOptions)),
+                   selected = "Select"
+    )
+  })
+  
+  GETKEY1 <- reactive({
+    if(is.null(input$GetKey1)) return(NULL)
+    if("Select" %in% input$GetKey1) return(NULL)
+    return(input$GetKey1)
+  })
+  
+  GETKEY2 <- reactive({
+    if(is.null(input$GetKey2)) return(NULL)
+    if("Select" %in% input$GetKey2) return(NULL)
+    return(input$GetKey2)
+  })
+  
+  File.1 <- reactive({ 
+    if(is.null(GETKEY1())) return(NULL)
+    
+    table <- data.table(File1()$data)
+    names(table)[which(names(table) %in% GETKEY1())] <- "KEY"
+    setkey(table,KEY)
+    return(table)
+    
+    
+  })
+  
+  File.2 <- reactive({
+    if(is.null(GETKEY2())) return(NULL) 
+    table <- data.table(File2()$data)
+    names(table)[which(names(table) %in% GETKEY2())] <- "KEY"
+    setkey(table,KEY)
+    return(table)
+    
+  })
+  
+  
+  
+  
+  output$relevantcols1 <- renderUI({
+    if(is.null(File.1())) return(NULL)
+    Options <- names(File.1())[which(names(File.1()) != "KEY")]
+    selectizeInput("relevantCols1", 
+                   "Relevant Columns from Spreadsheet #1",
+                   multi= T,
+                   selected = "",
+                   choices = c("All", Options)
+    )
+  })
+  
+  
+  output$relevantcols2 <- renderUI({
+    if(is.null(File.2())) return(NULL)
+    
+    Options <- names(File.2())[which(names(File.2()) != "KEY")]
+    selectizeInput("relevantCols2", 
+                   "Relevant Columns from Spreadsheet #2",
+                   multi= T,
+                   selected = "",
+                   choices = c("All", Options)
+    )
+    
+  })
+  
+  
+  RelevantCols1 <- reactive({
+    if(is.null(input$relevantCols1)) return(NULL)
+    if(sum(input$relevantCols1 %in% "") != 0) return(NULL)
+    return(input$relevantCols1)
+    
+  })
+  
+  RelevantCols2 <- reactive({
+    if(is.null(input$relevantCols2)) return(NULL)
+    if(sum(input$relevantCols2 %in% "") != 0)return(NULL)
+    return(input$relevantCols2)
+    
+  })
+  
+  
+  output$whichFilterColumns1 <- renderUI({
+    if(is.null(File.1())) return(NULL)
+    Options <- names(File.1())[which(names(File.1()) != "KEY")]
+    selectizeInput("whichFilterCols1", 
+                   "Filter By:",
+                   multi= T,
+                   selected = "None",
+                   choices = c("None",Options)
+    )
+  })
+  
+  output$whichFilterColumns2 <- renderUI({
+    if(is.null(File.2())) return(NULL)
+    Options <- names(File.2())[which(names(File.2()) != "KEY")]
+    selectizeInput("whichFilterCols2", 
+                   "Filter By:",
+                   multi= T,
+                   selected = "None",
+                   choices = c("None",Options)
+    )
+  })
+  
+  output$whichFilterValues1 <- renderUI({
+    if(is.null(input$whichFilterCols1)) return(NULL)
+    if("None" %in% input$whichFilterCols1){
+      return(NULL)
+    }else{
+      foreach(i=1:length(input$whichFilterCols1),.combine = c) %do%{
+        get <- which(names(File.1()) %in% input$whichFilterCols1[i])
+        get <- sort(str_trim(as.character(unique(File.1()[[get]]))))
+        get <- paste0(i,"::", get[1:length(get)])
+        return(get)
+      } -> Options; rm(get)
+    }
+    
+    
+    selectizeInput("whichFilterVals1", 
+                   "",
+                   multi= T,
+                   selected = "None",
+                   choices = c("None",Options)
+    )
+    
+  })
+  
+  output$whichFilterValues2 <- renderUI({
+    if(is.null(input$whichFilterCols2)) return(NULL)
+    
+    if("None" %in% input$whichFilterCols2){
+      return(NULL)
+    }else{
+      foreach(i=1:length(input$whichFilterCols2),.combine = c, .packages = c('base','stringr')) %do%{
+        get <- which(names(File.2()) %in% input$whichFilterCols2[i])
+        get <- sort(str_trim(as.character(unique(File.2()[[get]]))))
+        get <- paste0(i,"::", get[1:length(get)])
+        return(get)
+      } -> Options
+    }
+    
+    selectizeInput("whichFilterVals2", 
+                   "",
+                   multi= T,
+                   selected = "None",
+                   choices = c("None",Options)
+    )
+    
+  })
+  
+  output$apply.filters <- renderUI({
+    if(is.null(File.1())) return(NULL)
+    if(is.null(File.2())) return(NULL)
+    if((is.null(input$whichFilterVals1) | "None" %in% input$whichFilterVals1 ) & 
+       (is.null(input$whichFilterVals2) | "None" %in% input$whichFilterVals2 ) ) return(NULL)
+    
+    radioButtons("applyFilters", 
+                 label = "Apply Filter(s)",
+                 choices = c("No","Yes"),
+                 selected = "No",
+                 inline = T
+    )
+  })
+  
+  
+  ApplyFilters <- reactive({
+    if(is.null(input$applyFilters)) return(NULL)
+    if("No" %in% input$applyFilters) return(NULL)
+    return(TRUE)
+  })
+  
+  
+  FILE1 <- reactive({
+    if(is.null(File.1())) return(NULL)
+    if(!is.null(ApplyFilters())){
+      if(!is.null(input$whichFilterCols1) & !is.null(input$whichFilterVals1)){
+        table <- FilterBy(File.1(), input$whichFilterCols1,input$whichFilterVals1)
+        if(dim(table)[1] == 0) return(NULL)
+        setkey(table,KEY)
+        return(table)
+      }else{
+        return(File.1())
+      }
+      
+    }else{
+      return(File.1())
+    }
+  })
+  
+  
+  FILE2 <- reactive({
+    if(is.null(File.2())) return(NULL)
+    if(!is.null(ApplyFilters())){
+      if(!is.null(input$whichFilterCols2) & !is.null(input$whichFilterVals2)){
+        table <- FilterBy(File.2(), input$whichFilterCols2,input$whichFilterVals2)
+        if(dim(table)[1] == 0) return(NULL)
+        setkey(table,KEY)
+        return(table)
+      }else{
+        return(File.2())
+      }
+    }else{
+      return(File.2())
+    }
+  })
+  
+  
+  
+  compare <- reactive({
+    return(compareFiles(FILE1(),RelevantCols1(),FILE2(),RelevantCols2()))
+  })
+  
+  compareGO <- eventReactive(input$compareButton, {
+    if(input$compareButton <= 0) return(NULL)
+    if(is.null(FILE1())) return(NULL)
+    if(is.null(FILE2())) return(NULL)
+    if(is.null(RelevantCols1())) return(NULL)
+    if(is.null(RelevantCols2())) return(NULL)
+    return(compare())
+    
+  })
+  
+  output$reportText <- renderUI({
+    if(is.null(compareGO)) return(NULL)
+    
+    if(compareGO()$case == 0){
+      return(tags$em(tags$b("No Common Key Values Between These Files")))
+    }else if(compareGO()$case == 1){
+      return( HTML(paste0(
+        tags$em(tags$b(paste0("Number of Records with Perfect Match: ", dim(compareGO()$Match)[1]))),
+        tags$br(),
+        tags$em(tags$b(paste0("Number of Records in File#1 but not in File#2: ", dim(compareGO()$`IN-1-NOT-2`)[1]))),
+        tags$br(),
+        tags$em(tags$b(paste0("Number of Records in File#2 but not in File#1: ", dim(compareGO()$`IN-2-NOT-1`)[1]))))
+      ))
+      
+      
+    }else if(compareGO()$case == 2){
+      return(HTML(paste0(
+        tags$em(tags$b(paste0("Number of Records with Perfect Match: ", dim(compareGO()$Match)[1]))),
+        tags$br(),
+        tags$em(tags$b(paste0("Number of Records with Mismatch: ", dim(compareGO()$Mismatch)[1]))),
+        tags$br(),
+        tags$em(tags$b(paste0("Number of Records in File#1 but not in File#2: ", dim(compareGO()$`IN-1-NOT-2`)[1]))),
+        tags$br(),
+        tags$em(tags$b(paste0("Number of Records in File#2 but not in File#1: ", dim(compareGO()$`IN-2-NOT-1`)[1]))))
+      ))
+      
+    }else if(compareGO()$case == 3){
+      return(tags$em(tags$b("Something's wrong; I can't determine mismatching elements. FIX ME!")))
+    }else if(compareGO()$case == 4){
+      return(tags$em(tags$b("Relevant Columns don't match")))
+    }else{
+      return(tags$em(tags$b("FIX ME!")))
+    }
+    
+    
+  })
+  
+  
+  output$reportTables <- renderUI({
+    
+    if(is.null(compareGO())){
+      return(NULL)
+    }else{
+      if(compareGO()$case == 0){
+        
+        selectizeInput("compareTables","Datasets",
+                       multi = F,
+                       choices = c("",
+                                   "NO COMMON KEY VALUES"
+                       ),
+                       selected = ""
+        )
+        
+      }else if(compareGO()$case == 999){
+        
+        selectizeInput("compareTables","Datasets",
+                       multi = F,
+                       choices = c("",
+                                   "ERROR...NEEDS SOME FIXING"
+                       ),
+                       selected = ""
+        )
+        
+      }else if(compareGO()$case == 1){
+        
+        selectizeInput("compareTables","Datasets",
+                       multi = F,
+                       choices = c("",
+                                   "Records with Perfect Match",
+                                   "Records in File#1 but not in File#2",
+                                   "Records in File#2 but not in File#1"
+                       ),
+                       selected = ""
+        )
+        
+        
+      }else if(compareGO()$case == 2){
+        
+        selectizeInput("compareTables","Datasets",
+                       multi = F,
+                       choices = c("",
+                                   "Records with Perfect Match",
+                                   "Records with Mismatches",
+                                   "Records in File#1 but not in File#2",
+                                   "Records in File#2 but not in File#1"
+                       ),
+                       selected = ""
+        )
+      }else if(compareGO()$case == 3){
+        
+        selectizeInput("compareTables","Datasets",
+                       multi = F,
+                       choices = c("",
+                                   "Something's wrong; I can't determine mismatching elements. FIX ME!"
+                       ),
+                       selected = ""
+        )
+        
+        
+      }else if(compareGO()$case == 4){
+        
+        selectizeInput("compareTables","Datasets",
+                       multi = F,
+                       choices = c("",
+                                   "Relevant Columns don't match"
+                       ),
+                       selected = ""
+        )
+        
+        
+      }else{
+        selectizeInput("compareTables","Datasets",
+                       multi = F,
+                       choices = c("",
+                                   "Something is REALLY wrong Human. Nothing makes sense here, FIX ME!"
+                       ),
+                       selected = ""
+        )
+      }
+    }
+    
+    
+  })
+  
+  
+  output$reportTable <- DT::renderDataTable({
+    if(is.null(compareGO())) return(NULL)
+    if(is.null(input$compareTables)) return(NULL)
+    if( "" %in% input$compareTables) return(NULL)
+    if("Relevant Columns don't match" %in% input$compareTables) return(NULL)
+    
+    if("Records with Mismatches" %in% input$compareTables){
+      table <- data.table(compareGO()$Mismatch)
+    }else if("Records with Perfect Match" %in% input$compareTables){
+      table <- data.table(compareGO()$Match) 
+    }else if("Records in File#1 but not in File#2" %in% input$compareTables){
+      table <- data.table(compareGO()$`IN-1-NOT-2`)
+    }else if("Records in File#2 but not in File#1" %in% input$compareTables){
+      table <- data.table(compareGO()$`IN-2-NOT-1`)
+    }else{
+      table <- NULL
+    }
+    
+    
+    datatable(
+      table,
+      filter = 'top',
+      rownames = F,
+      selection="multiple", 
+      escape=FALSE,
+      extensions = c(
+        'Buttons',
+        'ColReorder',
+        'Responsive'
+      ),
+      
+      options = list(
+        dom = 'Bfrtip',
+        autoWidth = T,
+        lengthMednu = list(c(5,10,25,50,100,-1), c("5","10","25","50","100","All")),
+        buttons = list('excel' ,I('colvis')),
+        colReorder = TRUE,
+        Responsive = T
+      )
+    )
+  })
+  
+  
+  
+})
