@@ -96,7 +96,7 @@ shinyServer(function(input, output, session) {
   PathtoCutpoints <- eventReactive(input$cutpointTables,{
     
     if(input$cutpointTables <= 0) return(NULL)
-    filepaths <- choose.files(default = "C:/Users",
+    filepaths <- choose.files(default = "../..",
                               caption = "Select tables",
                               multi = T
     )
