@@ -1,7 +1,7 @@
 # User Interface for Paper Reports QC
 A fun project that I worked on to faciliate the data QC process at The American Institues of Research, D.C. 
 The application is built using Shiny, which is a web application framework for R. This application can be freely used by
-Data QC Assistants working at A.I.R. The application fully runs locally (on your machine/computer) with no connection to any external server or the internet.
+Data QC Assistants working at A.I.R. The application fully runs locally (on your machine/computer) with no required connection to any external server or the internet.
 
 # Steps to use the application
 ### 1- Install (or Update to) the latest version of R
