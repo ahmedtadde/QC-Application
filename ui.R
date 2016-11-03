@@ -40,7 +40,7 @@ shinyUI(
                       fluidRow( 
                         column(12, align = 'center', uiOutput("displayCutpointTables"))
                       ),
-                      tags$br(),tags$br(),
+                      tags$br(),tags$br(),tags$br(),
                       fluidRow(
                         column(12, align = 'center',DT::dataTableOutput("table")))
              ),
