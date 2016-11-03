@@ -1,6 +1,6 @@
 shinyUI(
   navbarPage("Data QC UI",
-             theme = "flatly.css",
+             theme = "cosmos.css",
              
              tabPanel("ASCII",
                       fluidRow(
