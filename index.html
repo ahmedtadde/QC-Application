@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>QC-Application by ahmedtadde</title>
+    <title>Qc-application by ahmedtadde</title>
 
     <link rel="stylesheet" href="stylesheets/styles.css">
     <link rel="stylesheet" href="stylesheets/github-light.css">
@@ -16,7 +16,8 @@
   <body>
     <div class="wrapper">
       <header>
-        <h1 class="header"> User Interface for Paper Reports QC</h1>
+        <h1 class="header">Qc-application</h1>
+        <p class="header">User Interface for Paper Reports QC</p>
 
         <ul>
           <li class="download"><a class="buttons" href="https://github.com/ahmedtadde/QC-Application/zipball/master">Download ZIP</a></li>
@@ -30,7 +31,7 @@
       </header>
       <section>
         <h1>
-<a id="about" class="anchor" href="#about" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>About</h1>
+<a id="user-interface-for-paper-reports-qc" class="anchor" href="#user-interface-for-paper-reports-qc" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>User Interface for Paper Reports QC</h1>
 
 <p>A fun project that I worked on to facilitate the data QC process at The American Institutes of Research, D.C. 
 The application is built using Shiny, which is a web application framework for R. This application can be freely used by
@@ -48,8 +49,22 @@ Open the downloaded file and follow the simple installation instructions.</p>
 <h3>
 <a id="2--open-r-and-launch-the-app" class="anchor" href="#2--open-r-and-launch-the-app" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>2- Open R and Launch the App</h3>
 
-<p>Open your newly installed/updated R software. Copy the content of the file named "Run_QC_App.R" in this repository, then paste it
-into the R console and press "ENTER" (or "RETURN" for Macs). You may be prompted to choose a "CRAN Repository" for the installation of the required libraries/functions (choose one of the US options). Once all required libraries/functions are automatically installed and loaded, the application will launch and be ready for use in your browser. That's it!</p>
+<p>Open your newly installed/updated R software. Copy the following lines of code:</p>
+
+<pre><code># Install and Load Pacman library
+if(!require("pacman")) install.packages("pacman",dependencies = T)
+library(pacman)
+
+# Install OR Load shiny &amp; tm libraries
+p_load('shiny')
+p_load('tm')
+
+# Run Application
+runGitHub("QC-Application","ahmedtadde")
+
+</code></pre>
+
+<p>Paste into the R console and press "ENTER" (or "RETURN" for Macs). You may be prompted to choose a "CRAN Repository" for the installation of the required libraries/functions (choose one of the US options). Once all required libraries/functions are automatically installed and loaded, the application will launch and be ready for use in your browser. That's it!</p>
 
 <h1>
 <a id="for-issues-questions-comments-and-suggestions" class="anchor" href="#for-issues-questions-comments-and-suggestions" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>For Issues, Questions, Comments and Suggestions</h1>
