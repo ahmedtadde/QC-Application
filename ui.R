@@ -1,5 +1,5 @@
 shinyUI(
-  navbarPage("UI",
+  navbarPage("Data QC UI",
              theme = "flatly.css",
              
              tabPanel("ASCII",
