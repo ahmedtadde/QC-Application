@@ -18,21 +18,6 @@ shinyUI(
                         column(12, align = 'center', DT::dataTableOutput("ascii.table"))
                       )
              ),
-             tabPanel("CUTPOINTS",
-                      fluidRow(
-                        column(3, align = 'left', actionButton("cutpointTables", "Select Cut Tables")),
-                        column(3),
-                        column(6, align = 'left', htmlOutput("cutpointTablesUploadStatus"))
-                      ),
-                      tags$br(),tags$br(),
-                      fluidRow(
-                        column(6, align = 'left', uiOutput("SelectCutpointTable"))
-                      ),
-                      tags$br(),tags$br(),
-                      fluidRow(
-                        column(12, align = 'left', DT::dataTableOutput("ViewCutpointTable"))
-                      )
-             ),
              
              tabPanel("SPREADSHEET QC",
                       fluidRow(
@@ -45,9 +30,17 @@ shinyUI(
                         
                         column(3,  align = 'left', uiOutput("recordtype.QC")),
                         column(3,  align = 'left', uiOutput("Apply.ASCII")),
-                        column(6, align = 'center', tableOutput("apply.ascii.message"))
+                        column(6,  align = 'center', tableOutput("apply.ascii.message"))
                       ),
-                      tags$br(),
+                      fluidRow(
+                        column(4, align = 'left', actionButton("cutpointTables", "Select Cut Tables")),
+                        column(4)
+                      ),
+                      tags$br(),tags$br(),
+                      fluidRow( 
+                        column(12, align = 'center', uiOutput("displayCutpointTables"))
+                      ),
+                      tags$br(),tags$br(),
                       fluidRow(
                         column(12, align = 'center',DT::dataTableOutput("table")))
              ),

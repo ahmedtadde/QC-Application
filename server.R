@@ -1,6 +1,5 @@
-source('Functions.R')
+source('functions.R')
 libraries()
-
 WD <- getwd()
 shinyServer(function(input, output, session) {
   
@@ -86,138 +85,9 @@ shinyServer(function(input, output, session) {
   })
   
   
-  
   ##=============================================================================
   ##
-  ##                                  TAB 2 (CUTPOINTS)
-  ##
-  ##=============================================================================
-  
-  PathtoCutpoints <- eventReactive(input$cutpointTables,{
-    
-    if(input$cutpointTables <= 0) return(NULL)
-    filepaths <- choose.files(default = "../..",
-                              caption = "Select tables",
-                              multi = T
-    )
-    if(length(filepaths) == 0) return(NULL)
-    
-    return(filepaths)
-  }) 
-  
-  CutpointFiles <- reactive({
-    
-    if(is.null(PathtoCutpoints())) return(NULL)
-    filepaths <- PathtoCutpoints()
-    foreach(i=1:length(filepaths)) %dopar%{
-      source('Functions.R')
-      return(getCUTPOINTS(filepaths[i]))
-    } -> tables
-    
-    foreach(i=1:length(tables),.combine = c ) %dopar%{
-      if(is.null(tables[[i]])) return(T)
-      if(!is.data.table(tables[[i]])) return(T)
-      return(FALSE)
-    } -> checkTables
-    
-    if(sum(checkTables) != 0 ) return(NULL)
-    
-    filenames <- foreach(i=1:length(filepaths), .combine = c) %do%{ return(stri_split(basename(filepaths[i]), fixed = ".")[[1]][1])} 
-    names(tables) <- filenames; rm(filenames); rm(filepaths)
-    
-    return(tables)
-    
-  })
-  
-  output$cutpointTablesUploadStatus <- renderUI({
-    if(is.null(CutpointFiles())){
-      return(tags$b(tags$em("NO SELECTION OR FILE(s) CAN'T BE LOADED")))
-    }else{
-      return(tags$b(tags$em("LOADED")))
-    }
-  })
-  
-  
-  
-  output$SelectCutpointTable <- renderUI({
-    
-    
-    if(is.null(CutpointFiles()))return(NULL)
-    
-    selectizeInput("displayCutpointTable",
-                   "View Table",
-                   selected = "Select",
-                   choices = c("Select",names(CutpointFiles())),
-                   multiple = F,
-                   width = '70%'
-    )
-    
-  })
-  
-  
-  output$ViewCutpointTable <- DT::renderDataTable({
-    
-    
-    if(is.null(CutpointFiles())) return(NULL)
-    if(is.null(input$displayCutpointTable)) return(NULL)
-    if("Select" %in% input$displayCutpointTable) return(NULL)
-    if(length(input$displayCutpointTable)== 0)  return(NULL)
-    
-    table <- CutpointFiles()[[which(names(CutpointFiles()) %in% input$displayCutpointTable)]]
-    table$Subject <- gsub("\\[","",table$Subject)
-    table$Subject <- gsub("\\]","",table$Subject)
-    table$Subject <- gsub("\\(","",table$Subject)
-    table$Subject <- gsub("\\)","",table$Subject)
-    table$Subject <- as.character(table$Subject)
-    
-    
-    
-    
-    foreach(i =1:dim(table)[2], .combine = c) %dopar%{
-      if(all(is.na(table[[i]])) == TRUE){
-        return(i)
-      }
-    } -> selection
-    
-    if(length(selection) != 0){
-      table <- data.table(table %>% select(-c(selection)))
-    }
-    
-    rm(selection)
-    
-    table[[dim(table)[2]]] <- gsub("\\[","",table[[dim(table)[2]]])
-    table[[dim(table)[2]]] <- gsub("\\]","",table[[dim(table)[2]]])
-    table[[dim(table)[2]]] <- gsub("\\(","",table[[dim(table)[2]]])
-    table[[dim(table)[2]]] <- gsub("\\)","",table[[dim(table)[2]]])
-    table[[dim(table)[2]]] <- as.character(table[[dim(table)[2]]])
-    
-    datatable(
-      table,
-      rownames = F,
-      # selection="multiple",
-      # escape=FALSE,
-      extensions = c(
-        'Buttons',
-        # 'ColReorder'
-        'Responsive'
-      ),
-      
-      options = list(
-        dom = 'Bfrtip',
-        # autoWidth = T,
-        # lengthMednu = list(c(5,10,25,50,100,-1), c("5","10","25","50","100","All")),
-        buttons = list('csv',I('colvis')),
-        # colReorder = TRUE,
-        Responsive = T
-      )
-    )
-    
-    
-  })
-  
-  ##=============================================================================
-  ##
-  ##                                  TAB 3 (DATA QC)
+  ##                                  TAB 2 (DATA QC)
   ##
   ##=============================================================================
   
@@ -498,6 +368,454 @@ shinyServer(function(input, output, session) {
   })
   
   
+  PathtoCutpoints <- eventReactive(input$cutpointTables,{
+    
+    if(input$cutpointTables <= 0) return(NULL)
+    filepaths <- choose.files(default = "../..",
+                              caption = "Select tables",
+                              multi = T
+    )
+    if(length(filepaths) == 0) return(NULL)
+    
+    return(filepaths)
+  }) 
+  
+  CutpointFiles <- reactive({
+    
+    if(is.null(PathtoCutpoints())) return(NULL)
+    filepaths <- PathtoCutpoints()
+    foreach(i=1:length(filepaths))%dopar%{
+      source('functions.R')
+      return(getCUTPOINTS(filepaths[i]))
+    } -> tables
+    
+    foreach(i=1:length(tables),.combine = c ) %dopar%{
+      if(is.null(tables[[i]])) return(T)
+      if(!is.data.table(tables[[i]])) return(T)
+      return(FALSE)
+    } -> checkTables
+    
+    if(sum(checkTables) != 0 ) return(NULL)
+    
+    filenames <- foreach(i=1:length(filepaths), .combine = c) %do%{ return(stri_split(basename(filepaths[i]), fixed = ".")[[1]][1])} 
+    names(tables) <- filenames; rm(filenames); rm(filepaths)
+    
+    return(tables)
+    
+  })
+  
+  numberOfTables <- reactive({
+    if(is.null(CutpointFiles())) return(NULL)
+    if(length(CutpointFiles())== 0)  return(NULL)
+    return(length(CutpointFiles()))
+  })
+  
+  
+  output$displayCutpointTables <- renderUI({
+    if(is.null(numberOfTables())) return(NULL)
+    
+    if(numberOfTables() == 1){
+      tabsetPanel(type = "tabs", 
+                  tabPanel(names(CutpointFiles())[1], DT::dataTableOutput("ViewTable1"))
+      )
+      
+    }else if(numberOfTables() ==2){
+      tabsetPanel(type = "tabs", 
+                  tabPanel(names(CutpointFiles())[1], DT::dataTableOutput("ViewTable1")),
+                  tabPanel(names(CutpointFiles())[2], DT::dataTableOutput("ViewTable2"))
+      )
+    }else if(numberOfTables() ==3){
+      tabsetPanel(type = "tabs", 
+                  tabPanel(names(CutpointFiles())[1], DT::dataTableOutput("ViewTable1")),
+                  tabPanel(names(CutpointFiles())[2], DT::dataTableOutput("ViewTable2")),
+                  tabPanel(names(CutpointFiles())[3], DT::dataTableOutput("ViewTable3"))
+      )
+      
+    }else if(numberOfTables() ==4){
+      tabsetPanel(type = "tabs", 
+                  tabPanel(names(CutpointFiles())[1], DT::dataTableOutput("ViewTable1")),
+                  tabPanel(names(CutpointFiles())[2], DT::dataTableOutput("ViewTable2")),
+                  tabPanel(names(CutpointFiles())[3], DT::dataTableOutput("ViewTable3")),
+                  tabPanel(names(CutpointFiles())[4], DT::dataTableOutput("ViewTable4"))
+      )
+      
+    }else if(numberOfTables() ==5){
+      tabsetPanel(type = "tabs", 
+                  tabPanel(names(CutpointFiles())[1], DT::dataTableOutput("ViewTable1")),
+                  tabPanel(names(CutpointFiles())[2], DT::dataTableOutput("ViewTable2")),
+                  tabPanel(names(CutpointFiles())[3], DT::dataTableOutput("ViewTable3")),
+                  tabPanel(names(CutpointFiles())[4], DT::dataTableOutput("ViewTable4")),
+                  tabPanel(names(CutpointFiles())[5], DT::dataTableOutput("ViewTable5"))
+      )
+      
+    }else if(numberOfTables() ==6){
+      tabsetPanel(type = "tabs", 
+                  tabPanel(names(CutpointFiles())[1], DT::dataTableOutput("ViewTable1")),
+                  tabPanel(names(CutpointFiles())[2], DT::dataTableOutput("ViewTable2")),
+                  tabPanel(names(CutpointFiles())[3], DT::dataTableOutput("ViewTable3")),
+                  tabPanel(names(CutpointFiles())[4], DT::dataTableOutput("ViewTable4")),
+                  tabPanel(names(CutpointFiles())[5], DT::dataTableOutput("ViewTable5")),
+                  tabPanel(names(CutpointFiles())[6], DT::dataTableOutput("ViewTable6"))
+      )
+      
+    }else{
+      return(NULL)
+    }
+    
+  })
+  
+  
+  output$ViewTable1 <- DT::renderDataTable({
+    if(is.null(numberOfTables())) return(NULL)
+    if(numberOfTables() >= 1){
+      
+      table <- CutpointFiles()[[1]]
+      table$Subject <- gsub("\\[","",table$Subject)
+      table$Subject <- gsub("\\]","",table$Subject)
+      table$Subject <- gsub("\\(","",table$Subject)
+      table$Subject <- gsub("\\)","",table$Subject)
+      table$Subject <- as.character(table$Subject)
+      
+      
+      
+      
+      foreach(i =1:dim(table)[2], .combine = c) %dopar%{
+        if(all(is.na(table[[i]])) == TRUE){
+          return(i)
+        }
+      } -> selection
+      
+      if(length(selection) != 0){
+        table <- data.table(table %>% select(-c(selection)))
+      }
+      
+      rm(selection)
+      
+      table[[dim(table)[2]]] <- gsub("\\[","",table[[dim(table)[2]]])
+      table[[dim(table)[2]]] <- gsub("\\]","",table[[dim(table)[2]]])
+      table[[dim(table)[2]]] <- gsub("\\(","",table[[dim(table)[2]]])
+      table[[dim(table)[2]]] <- gsub("\\)","",table[[dim(table)[2]]])
+      table[[dim(table)[2]]] <- as.character(table[[dim(table)[2]]])
+      
+      datatable(
+        table,
+        rownames = F,
+        # selection="multiple",
+        # escape=FALSE,
+        extensions = c(
+          'Buttons',
+          # 'ColReorder'
+          'Responsive'
+        ),
+        
+        options = list(
+          dom = 'Bfrtip',
+          # autoWidth = T,
+          # lengthMednu = list(c(5,10,25,50,100,-1), c("5","10","25","50","100","All")),
+          buttons = list('csv',I('colvis')),
+          # colReorder = TRUE,
+          Responsive = T
+        )
+      )
+      
+    }else{
+      return(NULL)
+    }
+  })
+  
+  output$ViewTable2 <- DT::renderDataTable({
+    if(is.null(numberOfTables())) return(NULL)
+    if(numberOfTables() >= 2){
+      
+      table <- CutpointFiles()[[2]]
+      table$Subject <- gsub("\\[","",table$Subject)
+      table$Subject <- gsub("\\]","",table$Subject)
+      table$Subject <- gsub("\\(","",table$Subject)
+      table$Subject <- gsub("\\)","",table$Subject)
+      table$Subject <- as.character(table$Subject)
+      
+      
+      
+      
+      foreach(i =1:dim(table)[2], .combine = c) %dopar%{
+        if(all(is.na(table[[i]])) == TRUE){
+          return(i)
+        }
+      } -> selection
+      
+      if(length(selection) != 0){
+        table <- data.table(table %>% select(-c(selection)))
+      }
+      
+      rm(selection)
+      
+      table[[dim(table)[2]]] <- gsub("\\[","",table[[dim(table)[2]]])
+      table[[dim(table)[2]]] <- gsub("\\]","",table[[dim(table)[2]]])
+      table[[dim(table)[2]]] <- gsub("\\(","",table[[dim(table)[2]]])
+      table[[dim(table)[2]]] <- gsub("\\)","",table[[dim(table)[2]]])
+      table[[dim(table)[2]]] <- as.character(table[[dim(table)[2]]])
+      
+      datatable(
+        table,
+        rownames = F,
+        # selection="multiple",
+        # escape=FALSE,
+        extensions = c(
+          'Buttons',
+          # 'ColReorder'
+          'Responsive'
+        ),
+        
+        options = list(
+          dom = 'Bfrtip',
+          # autoWidth = T,
+          # lengthMednu = list(c(5,10,25,50,100,-1), c("5","10","25","50","100","All")),
+          buttons = list('csv',I('colvis')),
+          # colReorder = TRUE,
+          Responsive = T
+        )
+      )
+      
+    }else{
+      return(NULL)
+    }
+  })
+  
+  output$ViewTable3 <- DT::renderDataTable({
+    if(is.null(numberOfTables())) return(NULL)
+    
+    if(numberOfTables() >= 3){
+      
+      table <- CutpointFiles()[[3]]
+      table$Subject <- gsub("\\[","",table$Subject)
+      table$Subject <- gsub("\\]","",table$Subject)
+      table$Subject <- gsub("\\(","",table$Subject)
+      table$Subject <- gsub("\\)","",table$Subject)
+      table$Subject <- as.character(table$Subject)
+      
+      
+      
+      
+      foreach(i =1:dim(table)[2], .combine = c) %dopar%{
+        if(all(is.na(table[[i]])) == TRUE){
+          return(i)
+        }
+      } -> selection
+      
+      if(length(selection) != 0){
+        table <- data.table(table %>% select(-c(selection)))
+      }
+      
+      rm(selection)
+      
+      table[[dim(table)[2]]] <- gsub("\\[","",table[[dim(table)[2]]])
+      table[[dim(table)[2]]] <- gsub("\\]","",table[[dim(table)[2]]])
+      table[[dim(table)[2]]] <- gsub("\\(","",table[[dim(table)[2]]])
+      table[[dim(table)[2]]] <- gsub("\\)","",table[[dim(table)[2]]])
+      table[[dim(table)[2]]] <- as.character(table[[dim(table)[2]]])
+      
+      datatable(
+        table,
+        rownames = F,
+        # selection="multiple",
+        # escape=FALSE,
+        extensions = c(
+          'Buttons',
+          # 'ColReorder'
+          'Responsive'
+        ),
+        
+        options = list(
+          dom = 'Bfrtip',
+          # autoWidth = T,
+          # lengthMednu = list(c(5,10,25,50,100,-1), c("5","10","25","50","100","All")),
+          buttons = list('csv',I('colvis')),
+          # colReorder = TRUE,
+          Responsive = T
+        )
+      )
+      
+    }else{
+      return(NULL)
+    }
+  })
+  
+  output$ViewTable4 <- DT::renderDataTable({
+    if(is.null(numberOfTables())) return(NULL)
+    if(numberOfTables() >= 4){
+      
+      table <- CutpointFiles()[[4]]
+      table$Subject <- gsub("\\[","",table$Subject)
+      table$Subject <- gsub("\\]","",table$Subject)
+      table$Subject <- gsub("\\(","",table$Subject)
+      table$Subject <- gsub("\\)","",table$Subject)
+      table$Subject <- as.character(table$Subject)
+      
+      
+      
+      
+      foreach(i =1:dim(table)[2], .combine = c) %dopar%{
+        if(all(is.na(table[[i]])) == TRUE){
+          return(i)
+        }
+      } -> selection
+      
+      if(length(selection) != 0){
+        table <- data.table(table %>% select(-c(selection)))
+      }
+      
+      rm(selection)
+      
+      table[[dim(table)[2]]] <- gsub("\\[","",table[[dim(table)[2]]])
+      table[[dim(table)[2]]] <- gsub("\\]","",table[[dim(table)[2]]])
+      table[[dim(table)[2]]] <- gsub("\\(","",table[[dim(table)[2]]])
+      table[[dim(table)[2]]] <- gsub("\\)","",table[[dim(table)[2]]])
+      table[[dim(table)[2]]] <- as.character(table[[dim(table)[2]]])
+      
+      datatable(
+        table,
+        rownames = F,
+        # selection="multiple",
+        # escape=FALSE,
+        extensions = c(
+          'Buttons',
+          # 'ColReorder'
+          'Responsive'
+        ),
+        
+        options = list(
+          dom = 'Bfrtip',
+          # autoWidth = T,
+          # lengthMednu = list(c(5,10,25,50,100,-1), c("5","10","25","50","100","All")),
+          buttons = list('csv',I('colvis')),
+          # colReorder = TRUE,
+          Responsive = T
+        )
+      )
+      
+    }else{
+      return(NULL)
+    }
+    
+  })
+  
+  output$ViewTable5 <- DT::renderDataTable({
+    if(is.null(numberOfTables())) return(NULL)
+    if(numberOfTables() >= 5){
+      
+      table <- CutpointFiles()[[5]]
+      table$Subject <- gsub("\\[","",table$Subject)
+      table$Subject <- gsub("\\]","",table$Subject)
+      table$Subject <- gsub("\\(","",table$Subject)
+      table$Subject <- gsub("\\)","",table$Subject)
+      table$Subject <- as.character(table$Subject)
+      
+      
+      
+      
+      foreach(i =1:dim(table)[2], .combine = c) %dopar%{
+        if(all(is.na(table[[i]])) == TRUE){
+          return(i)
+        }
+      } -> selection
+      
+      if(length(selection) != 0){
+        table <- data.table(table %>% select(-c(selection)))
+      }
+      
+      rm(selection)
+      
+      table[[dim(table)[2]]] <- gsub("\\[","",table[[dim(table)[2]]])
+      table[[dim(table)[2]]] <- gsub("\\]","",table[[dim(table)[2]]])
+      table[[dim(table)[2]]] <- gsub("\\(","",table[[dim(table)[2]]])
+      table[[dim(table)[2]]] <- gsub("\\)","",table[[dim(table)[2]]])
+      table[[dim(table)[2]]] <- as.character(table[[dim(table)[2]]])
+      
+      datatable(
+        table,
+        rownames = F,
+        # selection="multiple",
+        # escape=FALSE,
+        extensions = c(
+          'Buttons',
+          # 'ColReorder'
+          'Responsive'
+        ),
+        
+        options = list(
+          dom = 'Bfrtip',
+          # autoWidth = T,
+          # lengthMednu = list(c(5,10,25,50,100,-1), c("5","10","25","50","100","All")),
+          buttons = list('csv',I('colvis')),
+          # colReorder = TRUE,
+          Responsive = T
+        )
+      )
+      
+    }else{
+      return(NULL)
+    }
+  })
+  
+  output$ViewTable6 <- DT::renderDataTable({
+    if(is.null(numberOfTables())) return(NULL)
+    if(numberOfTables() >= 6){
+      
+      table <- CutpointFiles()[[6]]
+      table$Subject <- gsub("\\[","",table$Subject)
+      table$Subject <- gsub("\\]","",table$Subject)
+      table$Subject <- gsub("\\(","",table$Subject)
+      table$Subject <- gsub("\\)","",table$Subject)
+      table$Subject <- as.character(table$Subject)
+      
+      
+      
+      
+      foreach(i =1:dim(table)[2], .combine = c) %dopar%{
+        if(all(is.na(table[[i]])) == TRUE){
+          return(i)
+        }
+      } -> selection
+      
+      if(length(selection) != 0){
+        table <- data.table(table %>% select(-c(selection)))
+      }
+      
+      rm(selection)
+      
+      table[[dim(table)[2]]] <- gsub("\\[","",table[[dim(table)[2]]])
+      table[[dim(table)[2]]] <- gsub("\\]","",table[[dim(table)[2]]])
+      table[[dim(table)[2]]] <- gsub("\\(","",table[[dim(table)[2]]])
+      table[[dim(table)[2]]] <- gsub("\\)","",table[[dim(table)[2]]])
+      table[[dim(table)[2]]] <- as.character(table[[dim(table)[2]]])
+      
+      datatable(
+        table,
+        rownames = F,
+        # selection="multiple",
+        # escape=FALSE,
+        extensions = c(
+          'Buttons',
+          # 'ColReorder'
+          'Responsive'
+        ),
+        
+        options = list(
+          dom = 'Bfrtip',
+          # autoWidth = T,
+          # lengthMednu = list(c(5,10,25,50,100,-1), c("5","10","25","50","100","All")),
+          buttons = list('csv',I('colvis')),
+          # colReorder = TRUE,
+          Responsive = T
+        )
+      )
+      
+    }else{
+      return(NULL)
+    }
+  })
+  
+  
   output$table <- DT::renderDataTable({
     if(is.null(dataset())) return(NULL)
     
@@ -654,7 +972,7 @@ shinyServer(function(input, output, session) {
   
   ##=============================================================================
   ##
-  ##                                  TAB 4 (COMPARING SPREADSHEETS)
+  ##                                  TAB 3 (COMPARING SPREADSHEETS)
   ##
   ##=============================================================================
   
@@ -859,7 +1177,7 @@ shinyServer(function(input, output, session) {
     if("None" %in% input$whichFilterCols2){
       return(NULL)
     }else{
-      foreach(i=1:length(input$whichFilterCols2),.combine = c, .packages = c('base','stringr')) %do%{
+      foreach(i=1:length(input$whichFilterCols2),.combine = c) %do%{
         get <- which(names(File.2()) %in% input$whichFilterCols2[i])
         get <- sort(str_trim(as.character(unique(File.2()[[get]]))))
         get <- paste0(i,"::", get[1:length(get)])
@@ -879,29 +1197,36 @@ shinyServer(function(input, output, session) {
   output$apply.filters <- renderUI({
     if(is.null(File.1())) return(NULL)
     if(is.null(File.2())) return(NULL)
-    if((is.null(input$whichFilterVals1) | "None" %in% input$whichFilterVals1 ) & 
-       (is.null(input$whichFilterVals2) | "None" %in% input$whichFilterVals2 ) ) return(NULL)
     
     radioButtons("applyFilters", 
                  label = "Apply Filter(s)",
                  choices = c("No","Yes"),
                  selected = "No",
                  inline = T
-    )
+                 )
   })
   
   
   ApplyFilters <- reactive({
     if(is.null(input$applyFilters)) return(NULL)
     if("No" %in% input$applyFilters) return(NULL)
-    return(TRUE)
+    
+    condition1 <- is.null(input$whichFilterCols1) | is.null(input$whichFilterVals1) | "None" %in% input$whichFilterVals1 | length(input$whichFilterVals1) == 0
+    condition2 <- is.null(input$whichFilterCols2) | is.null(input$whichFilterVals2) | "None" %in% input$whichFilterVals2 | length(input$whichFilterVals2) == 0
+    flag <- condition1 & condition2
+    if(flag %in% TRUE) return(NULL)
+    
+    
+    if(condition1 %in% F & condition2 %in% T ) return(1)
+    if(condition2 %in% F & condition1 %in% T ) return(2)
+    if(condition1 %in% F & condition2 %in% F ) return(3)
   })
   
   
   FILE1 <- reactive({
     if(is.null(File.1())) return(NULL)
     if(!is.null(ApplyFilters())){
-      if(!is.null(input$whichFilterCols1) & !is.null(input$whichFilterVals1)){
+      if(ApplyFilters() %in% c(1,3)){
         table <- FilterBy(File.1(), input$whichFilterCols1,input$whichFilterVals1)
         if(dim(table)[1] == 0) return(NULL)
         setkey(table,KEY)
@@ -919,7 +1244,7 @@ shinyServer(function(input, output, session) {
   FILE2 <- reactive({
     if(is.null(File.2())) return(NULL)
     if(!is.null(ApplyFilters())){
-      if(!is.null(input$whichFilterCols2) & !is.null(input$whichFilterVals2)){
+      if(ApplyFilters() %in% c(2,3)){
         table <- FilterBy(File.2(), input$whichFilterCols2,input$whichFilterVals2)
         if(dim(table)[1] == 0) return(NULL)
         setkey(table,KEY)
@@ -927,6 +1252,7 @@ shinyServer(function(input, output, session) {
       }else{
         return(File.2())
       }
+      
     }else{
       return(File.2())
     }
