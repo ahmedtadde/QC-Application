@@ -832,7 +832,7 @@ shinyServer(function(input, output, session) {
       
       colNames <- names(table)
       foreach(i=1:length(colNames)) %do%{
-        colNames[i] <- str_trim(colNames[i])
+        colNames[i] <- stri_trim(colNames[i])
       }
       setnames(table, names(table), colNames); rm(colNames)
       foreach(i =1:dim(table)[2], .combine = c) %dopar%{
@@ -856,7 +856,7 @@ shinyServer(function(input, output, session) {
       
       colNames <- names(table)
       foreach(i=1:length(colNames)) %do%{
-        colNames[i] <- str_trim(colNames[i])
+        colNames[i] <- stri_trim(colNames[i])
       }
       setnames(table, names(table), colNames); rm(colNames)
       foreach(i =1:dim(table)[2], .combine = c) %dopar%{
@@ -887,7 +887,7 @@ shinyServer(function(input, output, session) {
       
       colNames <- names(table)
       foreach(i=1:length(colNames)) %do%{
-        colNames[i] <- str_trim(colNames[i])
+        colNames[i] <- stri_trim(colNames[i])
       }
       setnames(table, names(table), colNames); rm(colNames)
       
@@ -895,15 +895,15 @@ shinyServer(function(input, output, session) {
       
       foreach(i=1:length(Map$variable)) %do%{
         Map$variable <- as.character(Map$variable)
-        Map$variable[i] <- str_trim(Map$variable[i])
+        Map$variable[i] <- stri_trim(Map$variable[i])
       }
       foreach(i=1:length(Map$value)) %do%{
         Map$value <- as.character(Map$value)
-        Map$value[i] <- str_trim(Map$value[i])
+        Map$value[i] <- stri_trim(Map$value[i])
       }
       foreach(i=1:length(Map$meaning)) %do%{
         Map$meaning<- as.character(Map$meaning)
-        Map$meaning[i] <- str_trim(Map$meaning[i])
+        Map$meaning[i] <- stri_trim(Map$meaning[i])
       }
       
       mappedVariables <- unique(Map$variable)
@@ -914,7 +914,7 @@ shinyServer(function(input, output, session) {
         if(mappedVariables[i] %in% names(table)){
           Col <- table[[which(names(table) %in% mappedVariables[i])]]
           foreach(j= 1:length(map$value)) %do%{
-            Col[which(as.character(Col) %in% map$value[j])] <- map$meaning[j]
+            Col[which(tolower(stri_trim(as.character(Col))) %in% tolower(stri_trim(as.character(map$value[j]))))] <- map$meaning[j]
           }
           
           table[[which(names(table) %in% mappedVariables[i])]] <- Col
