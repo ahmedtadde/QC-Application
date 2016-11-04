@@ -261,7 +261,7 @@ shinyServer(function(input, output, session) {
     table$`Minimum value` <- as.integer(table$`Minimum value`)
     table$`Maximum value` <- as.integer(table$`Maximum value`)
     
-    searchTerms <- c("lev|lvl|pass|gender|ucrxgen|grade|flag|condition|_complete|procomp")
+    searchTerms <- c("lev|lvl|pass|gender|ucrxgen|grade|flag|condition|_complete|procomp|status|subject|test")
     Rows <- which(grepl(searchTerms, table$`Variable Name`, ignore.case = T))
     
     if(length(Rows) != 0){
@@ -274,7 +274,7 @@ shinyServer(function(input, output, session) {
       if(dim(table)[1] !=0){
         
         Values <- table$values
-        foreach(i =1: length(Values), .packages = c('stringr','tidyr','foreach'), .combine = rbind) %dopar%{
+        foreach(i =1: length(Values), .packages = c('stringi','tidyr','foreach'), .combine = rbind) %dopar%{
           
           
           
@@ -286,15 +286,15 @@ shinyServer(function(input, output, session) {
           result <- gsub(",$", "", result, ignore.case = T)
           result <- gsub("^,", "", result, ignore.case = T)
           
-          result <- str_trim(result)
+          result <- stri_trim(result)
           
-          result <- unlist(strsplit(result, ","))
+          result <- unlist(stri_split(result, fixed = ","))
           dt <- data.frame("code" = result)
           dt <- separate(dt, code, c("code","description"), sep ="=")
           
           foreach(j = 1:length(dt$code)) %do%{
-            if(unlist(strsplit(dt$code[j], " "))[1] %in% "Note"){
-              dt$code[j] <- unlist(strsplit(dt$code[j], " "))[3]
+            if(unlist(stri_split(dt$code[j], fixed =" "))[1] %in% "Note"){
+              dt$code[j] <- unlist(stri_split(dt$code[j], fixed = " "))[3]
             }
           };rm(j)
           
