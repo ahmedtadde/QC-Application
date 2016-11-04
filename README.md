@@ -15,7 +15,8 @@ Open your newly installed/updated R software. Copy the following lines of code:
 if(!require("pacman")) install.packages("pacman",dependencies = T)
 library(pacman)
 
-# Install OR Load shiny & tm libraries
+# Install OR Load DT,shiny,and tm libraries
+p_load('DT')
 p_load('shiny')
 p_load('tm')
 
