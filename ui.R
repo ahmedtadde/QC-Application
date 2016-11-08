@@ -83,20 +83,14 @@ shinyUI(
                       ),
                       tags$br(),
                       fluidRow(
-                        column(3, align = 'left', uiOutput("apply.filters")),
-                        column(3),
-                        column(3),
-                        column(3, algin = 'left', actionButton("compareButton", "GO"))
+                        column(2, align = 'left', uiOutput("apply.filters")),
+                        column(1, algin = 'left', actionButton("compareButton", "GO"))
                       ),
                       tags$br(),tags$br(),
                       fluidRow(
-                        column(3,align ='left', htmlOutput("reportText") ),
-                        column(3),
-                        column(3,align ='left', uiOutput("reportTables")),
-                        column(3)
-                      ),
-                      tags$br(),tags$br(),
-                      fluidRow(column(12,DT::dataTableOutput("reportTable")))
+                        
+                        uiOutput("displayComparisonReport")
+                      )
              )
              
   )

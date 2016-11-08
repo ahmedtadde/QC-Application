@@ -1245,7 +1245,7 @@ shinyServer(function(input, output, session) {
     if(is.null(File.2())) return(NULL)
     if(!is.null(ApplyFilters())){
       if(ApplyFilters() %in% c(2,3)){
-        table <- FilterBy(File.2(), input$whichFilterCols2,input$whichFilterVals2)
+        table <- FilterBy(File.2(), input$whichFilterCols2,input$whichFilterVals2) 
         if(dim(table)[1] == 0) return(NULL)
         setkey(table,KEY)
         return(table)
@@ -1274,8 +1274,45 @@ shinyServer(function(input, output, session) {
     
   })
   
-  output$reportText <- renderUI({
+  
+  output$displayComparisonReport<- renderUI({
     if(is.null(compareGO)) return(NULL)
+    
+    if(compareGO()$case != 1 & compareGO()$case != 2 ){
+      tabsetPanel(type = "tabs", 
+                  tabPanel("Summary", uiOutput("reportText"))
+                  )
+      
+    }else{
+      
+      if(compareGO()$case == 1){
+        tabsetPanel(type = "tabs", 
+                    tabPanel("Summary", uiOutput("reportText")), 
+                    tabPanel("Records with Perfect Match", DT::dataTableOutput("perfect_match")),
+                    tabPanel("Records in File#1 but not in File#2", DT::dataTableOutput("in_1_not_2")),
+                    tabPanel("Records in File#2 but not in File#1", DT::dataTableOutput("in_2_not_1"))
+                    )
+        
+      }else{
+        
+        tabsetPanel(type = "tabs", 
+                    tabPanel("Summary", uiOutput("reportText")),
+                    tabPanel("Records with Perfect Match", DT::dataTableOutput("perfect_match")),
+                    tabPanel("Records with Mismatches", DT::dataTableOutput("mismatch_records")),
+                    tabPanel("Records in File#1 but not in File#2", DT::dataTableOutput("in_1_not_2")),
+                    tabPanel("Records in File#2 but not in File#1",DT::dataTableOutput("in_2_not_1"))
+                    )
+        
+      }
+      
+      
+    }
+  
+    
+  })
+  
+  
+  output$reportText <- renderUI({
     
     if(compareGO()$case == 0){
       return(tags$em(tags$b("No Common Key Values Between These Files")))
@@ -1312,133 +1349,129 @@ shinyServer(function(input, output, session) {
   })
   
   
-  output$reportTables <- renderUI({
+  
+  output$perfect_match <- DT::renderDataTable({
     
-    if(is.null(compareGO())){
-      return(NULL)
+    if(compareGO()$case == 1 | compareGO()$case == 2){
+      datatable(
+        data.table(compareGO()$Match),
+        filter = 'top',
+        rownames = F,
+        selection="multiple",
+        escape=FALSE,
+        extensions = c(
+          'Buttons',
+          'ColReorder',
+          'Responsive'
+        ),
+
+        options = list(
+          dom = 'Bfrtip',
+          autoWidth = T,
+          lengthMednu = list(c(5,10,25,50,100,-1), c("5","10","25","50","100","All")),
+          buttons = list('excel' ,I('colvis')),
+          colReorder = TRUE,
+          Responsive = T
+        )
+      )
     }else{
-      if(compareGO()$case == 0){
-        
-        selectizeInput("compareTables","Datasets",
-                       multi = F,
-                       choices = c("",
-                                   "NO COMMON KEY VALUES"
-                       ),
-                       selected = ""
-        )
-        
-      }else if(compareGO()$case == 999){
-        
-        selectizeInput("compareTables","Datasets",
-                       multi = F,
-                       choices = c("",
-                                   "ERROR...NEEDS SOME FIXING"
-                       ),
-                       selected = ""
-        )
-        
-      }else if(compareGO()$case == 1){
-        
-        selectizeInput("compareTables","Datasets",
-                       multi = F,
-                       choices = c("",
-                                   "Records with Perfect Match",
-                                   "Records in File#1 but not in File#2",
-                                   "Records in File#2 but not in File#1"
-                       ),
-                       selected = ""
-        )
-        
-        
-      }else if(compareGO()$case == 2){
-        
-        selectizeInput("compareTables","Datasets",
-                       multi = F,
-                       choices = c("",
-                                   "Records with Perfect Match",
-                                   "Records with Mismatches",
-                                   "Records in File#1 but not in File#2",
-                                   "Records in File#2 but not in File#1"
-                       ),
-                       selected = ""
-        )
-      }else if(compareGO()$case == 3){
-        
-        selectizeInput("compareTables","Datasets",
-                       multi = F,
-                       choices = c("",
-                                   "Something's wrong; I can't determine mismatching elements. FIX ME!"
-                       ),
-                       selected = ""
-        )
-        
-        
-      }else if(compareGO()$case == 4){
-        
-        selectizeInput("compareTables","Datasets",
-                       multi = F,
-                       choices = c("",
-                                   "Relevant Columns don't match"
-                       ),
-                       selected = ""
-        )
-        
-        
-      }else{
-        selectizeInput("compareTables","Datasets",
-                       multi = F,
-                       choices = c("",
-                                   "Something is REALLY wrong Human. Nothing makes sense here, FIX ME!"
-                       ),
-                       selected = ""
-        )
-      }
+      
+      return(NULL)
     }
-    
-    
+  
   })
   
   
-  output$reportTable <- DT::renderDataTable({
-    if(is.null(compareGO())) return(NULL)
-    if(is.null(input$compareTables)) return(NULL)
-    if( "" %in% input$compareTables) return(NULL)
-    if("Relevant Columns don't match" %in% input$compareTables) return(NULL)
+  output$mismatch_records <- DT::renderDataTable({
     
-    if("Records with Mismatches" %in% input$compareTables){
-      table <- data.table(compareGO()$Mismatch)
-    }else if("Records with Perfect Match" %in% input$compareTables){
-      table <- data.table(compareGO()$Match) 
-    }else if("Records in File#1 but not in File#2" %in% input$compareTables){
-      table <- data.table(compareGO()$`IN-1-NOT-2`)
-    }else if("Records in File#2 but not in File#1" %in% input$compareTables){
-      table <- data.table(compareGO()$`IN-2-NOT-1`)
-    }else{
-      table <- NULL
-    }
-    
-    
-    datatable(
-      table,
-      filter = 'top',
-      rownames = F,
-      selection="multiple", 
-      escape=FALSE,
-      extensions = c(
-        'Buttons',
-        'ColReorder',
-        'Responsive'
-      ),
+    if(compareGO()$case == 2){
       
-      options = list(
-        dom = 'Bfrtip',
-        autoWidth = T,
-        lengthMednu = list(c(5,10,25,50,100,-1), c("5","10","25","50","100","All")),
-        buttons = list('excel' ,I('colvis')),
-        colReorder = TRUE,
-        Responsive = T
+      
+      datatable(
+        data.table(compareGO()$Mismatch),
+        filter = 'top',
+        rownames = F,
+        selection="multiple",
+        escape=FALSE,
+        extensions = c(
+          'Buttons',
+          'ColReorder',
+          'Responsive'
+        ),
+
+        options = list(
+          dom = 'Bfrtip',
+          autoWidth = T,
+          lengthMednu = list(c(5,10,25,50,100,-1), c("5","10","25","50","100","All")),
+          buttons = list('excel' ,I('colvis')),
+          colReorder = TRUE,
+          Responsive = T
+        )
       )
-    )
+    }else{
+      return(NULL)
+    }
+  })
+  
+  
+  output$in_1_not_2 <- DT::renderDataTable({
+    
+    if(compareGO()$case == 1 |compareGO()$case == 2){
+      datatable(
+        data.table(compareGO()$`IN-1-NOT-2`),
+        filter = 'top',
+        rownames = F,
+        selection="multiple",
+        escape=FALSE,
+        extensions = c(
+          'Buttons',
+          'ColReorder',
+          'Responsive'
+        ),
+
+        options = list(
+          dom = 'Bfrtip',
+          autoWidth = T,
+          lengthMednu = list(c(5,10,25,50,100,-1), c("5","10","25","50","100","All")),
+          buttons = list('excel' ,I('colvis')),
+          colReorder = TRUE,
+          Responsive = T
+        )
+      )
+    }else{
+      return(NULL)
+    }
+  })
+  
+  
+  output$in_2_not_1 <-  DT::renderDataTable({
+    
+    if(compareGO()$case == 1 | compareGO()$case == 2){
+     
+      datatable(
+        data.table(compareGO()$`IN-2-NOT-1`),
+        filter = 'top',
+        rownames = F,
+        selection="multiple",
+        escape=FALSE,
+        extensions = c(
+          'Buttons',
+          'ColReorder',
+          'Responsive'
+        ),
+
+        options = list(
+          dom = 'Bfrtip',
+          autoWidth = T,
+          lengthMednu = list(c(5,10,25,50,100,-1), c("5","10","25","50","100","All")),
+          buttons = list('excel' ,I('colvis')),
+          colReorder = TRUE,
+          Responsive = T
+        )
+      )
+    }else{
+      return(NULL)
+    }
   })
   
   
