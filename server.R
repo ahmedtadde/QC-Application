@@ -261,7 +261,7 @@ shinyServer(function(input, output, session) {
     table$`Minimum value` <- as.integer(table$`Minimum value`)
     table$`Maximum value` <- as.integer(table$`Maximum value`)
     
-    searchTerms <- c("lev|lvl|pass|gender|ucrxgen|grade|flag|condition|_complete|procomp|status|subject|test")
+    searchTerms <- c("lev|lvl|pass|gender|ucrxgen|grade|flag|condition|_complete|procomp|status|subject|test|title_iii|proficiency")
     Rows <- which(grepl(searchTerms, table$`Variable Name`, ignore.case = T))
     
     if(length(Rows) != 0){
@@ -346,12 +346,12 @@ shinyServer(function(input, output, session) {
     if(is.null(dataset())) return(NULL)
     if(is.null(ApplyAscii())) return(NULL)
     
-    if(all(names(dataset()) %in% str_trim(ApplyAscii()$all.variables)) != T){
+    if(all(tolower(stri_trim(names(dataset()))) %in% tolower(stri_trim(ApplyAscii()$all.variables))) != T){
       
-      tableMismatches <- names(dataset()) %in% ApplyAscii()$all.variables
-      tableMismatches <- names(dataset())[which(tableMismatches == F)]
+      tableMismatches <- tolower(stri_trim(names(dataset()))) %in% tolower(stri_trim(ApplyAscii()$all.variables))
+      tableMismatches <- names(dataset())[which(tableMismatches %in% FALSE)]
       
-      asciiMismatches <- ApplyAscii()$all.variables %in% names(dataset())
+      asciiMismatches <- tolower(stri_trim(ApplyAscii()$all.variables)) %in% tolower(stri_trim(names(dataset())))
       asciiMismatches <- ApplyAscii()$all.variables[which(asciiMismatches %in% FALSE)]
       
       table <- data.table("Number of Variables" = c(length(ApplyAscii()$all.variables), length(names(dataset()))),
@@ -872,8 +872,8 @@ shinyServer(function(input, output, session) {
       if(length(names(table) !=0)){
         setnames(
           table,
-          names(table)[which(names(table)%in%ApplyAscii()$all.variables)],
-          ApplyAscii()$all.descriptions[which(ApplyAscii()$all.variables %in% names(table))]
+          names(table)[which(stri_trim(tolower(names(table)))%in% stri_trim(tolower(ApplyAscii()$all.variables)))],
+          ApplyAscii()$all.descriptions[which(stri_trim(tolower(ApplyAscii()$all.variables)) %in% stri_trim(tolower(names(table))))]
         )
       }
       
@@ -937,8 +937,8 @@ shinyServer(function(input, output, session) {
       if(length(names(table) !=0)){
         setnames(
           table,
-          names(table)[which(names(table)%in%ApplyAscii()$all.variables)],
-          ApplyAscii()$all.descriptions[which(ApplyAscii()$all.variables %in% names(table))]
+          names(table)[which(stri_trim(tolower(names(table)))%in% stri_trim(tolower(ApplyAscii()$all.variables)))],
+          ApplyAscii()$all.descriptions[which(stri_trim(tolower(ApplyAscii()$all.variables)) %in% stri_trim(tolower(names(table))))]
         )
       }
     }
