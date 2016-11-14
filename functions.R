@@ -42,6 +42,7 @@ toCharacter<- function(data){
   return(data)
 }
 
+
 ReportTypeInteger <- function(x){
   library(stringi)
   if(!is.na(stri_split(as.character(x), fixed = "\\.")[[1]][1])){
@@ -93,8 +94,9 @@ getASCII <- function(path){
   
   
   file.rename(path$datapath,paste0(path$datapath, ".xls"))
-  table <- data.table(toCharacter(read_excel(paste0(path$datapath, ".xls"), sheet = 1)))
+  table <- data.table(read_excel(paste0(path$datapath, ".xls"), sheet = 1))
   
+  # table <- data.table(read_excel(path, sheet = 1))
   
   if(all(c("Record Type","Variable Name",
            "Description","Minimum value",
@@ -123,7 +125,7 @@ getASCII <- function(path){
     table <- data.table(table); setkeyv(table, "Record Type")
     
     # dt <- data.table(read_excel(path, sheet = 2))
-    dt <- data.table(toCharacter(read_excel(paste0(path$datapath, ".xls"), sheet = 2)))
+    dt <- data.table(read_excel(paste0(path$datapath, ".xls"), sheet = 2))
     setnames(dt, names(dt)[1], "Record Type")
     dt <- dt %>% select(which(names(dt) %in% c("Record Type","Description"))) %>% filter(!is.na(Description))
     dt$`Record Type` <- unlist(parLapply(makeCluster(detectCores()), dt$`Record Type`, ReportTypeInteger))
@@ -497,7 +499,7 @@ compareFiles <- function(df1,cols1,df2,cols2){
 
 
 
-akeMaster <- function(wd, directory, state){
+makeMaster <- function(wd, directory, state){
   
   # wd = working directory
   # directory = path to spreasheet directory
@@ -599,8 +601,8 @@ akeMaster <- function(wd, directory, state){
     
     rm(list = c("ids","districtCols","schoolCols","gradeCols"))
     
-    write.csv(DT, paste0(directory,"/1MASTER_",state,".csv"), row.names = F)
-    # data.table::fwrite(DT, paste0(directory,"/1MASTER_",state,".csv"))
+    # write.csv(DT, paste0(directory,"/1MASTER_",state,".csv"), row.names = F)
+    data.table::fwrite(DT, paste0(directory,"/1MASTER_",state,".csv"))
     setwd(wd)
     return(spreadsheetCount)
   }else{   
@@ -705,9 +707,9 @@ akeMaster <- function(wd, directory, state){
       
       rm(list = c("ids","districtCols","schoolCols","gradeCols"))
       
-      write.csv(DT, paste0(directory,"/",j,"MASTER_",state,".csv"),row.names = F)
+      # write.csv(DT, paste0(directory,"/",j,"MASTER_",state,".csv"),row.names = F)
       
-      # data.table::fwrite(DT, paste0(directory,"/",j,"MASTER_",state,".csv"))
+      data.table::fwrite(DT, paste0(directory,"/",j,"MASTER_",state,".csv"))
       
     }
     
