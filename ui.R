@@ -1,3 +1,5 @@
+source('functions.R')
+libraries()
 shinyUI(
   navbarPage("Data QC UI",
              theme = "cosmos.css",
