@@ -1,6 +1,25 @@
 libraries <- function(){
+  # Install and Load Devtools & Pacman libraries
+  if(!require("devtools")) install.packages("devtools")
+  library(devtools)
+  if(!require("pacman")) install_github("trinker/pacman", dependencies = T)
+  library(pacman)
+    
   p_load(tools) 
   p_load(bit64)
+  p_load(Rcpp)
+  p_load(shiny)
+  p_load(shinythemes)
+  p_load(tm)
+  p_load(foreign)
+  p_load(foreach)
+  p_load(snow)
+  p_load(doSNOW)
+  registerDoSNOW(makeCluster(detectCores()))
+  p_load(doParallel)
+  registerDoParallel(makeCluster(detectCores()))
+    
+  p_load_gh("rstudio/DT")
   p_load_gh("wesm/feather/R")
   p_load_gh("gagolews/stringi")
   p_load_gh("tidyverse/stringr")
@@ -10,17 +29,6 @@ libraries <- function(){
   p_load_gh("hadley/dplyr")
   p_load_gh("hadley/readxl")
   p_load_gh("Rdatatable/data.table")
-  p_load_gh("RcppCore/Rcpp")
-  p_load_gh("rstudio/DT")
-  p_load_gh("rstudio/shiny")
-  p_load_gh("rstudio/shinythemes")
-  p_load(foreign)
-  p_load(foreach)
-  p_load(snow)
-  p_load(doSNOW)
-  registerDoSNOW(makeCluster(detectCores()))
-  p_load(doParallel)
-  registerDoParallel(makeCluster(detectCores()))
   
 }
 
