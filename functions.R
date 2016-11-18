@@ -1,15 +1,4 @@
 libraries <- function(){
-  # Install and Load Devtools & Pacman libraries
-  if(!require("devtools")) install.packages("devtools")
-  library(devtools)
-  if(!require("pacman")) install_github("trinker/pacman", dependencies = T)
-  library(pacman)
-
-  # Install OR Load Rcpp, DT,shiny,and tm libraries
-  p_load_gh("RcppCore/Rcpp")
-  p_load_gh("rstudio/DT")
-  p_load_gh("rstudio/shiny")
-  p_load(tm)
   p_load(tools) 
   p_load(bit64)
   p_load_gh("wesm/feather/R")
