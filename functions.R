@@ -10,6 +10,7 @@ libraries <- function(){
   p_load(shinythemes)
   p_load(tm)
   p_load(foreign)
+  p_load(yaml)
   p_load(stringi)
   p_load(stringr)
   p_load(tidyr)
