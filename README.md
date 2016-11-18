@@ -12,7 +12,7 @@ Open your newly installed/updated R software. Copy the following lines of code:
 ```
 # Install the Shiny Library
 if(!require('shiny')) install.packages('shiny')
-library(shiny
+library(shiny)
 # Run Application
 runGitHub("QC-Application","ahmedtadde")
 
