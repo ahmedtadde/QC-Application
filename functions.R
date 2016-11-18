@@ -1,6 +1,7 @@
 libraries <- function(){
   if(!require("pacman")) install_github("trinker/pacman")
   library(pacman)
+  p_load(tools) 
   p_load(bit64)
   p_load_current_gh("wesm/feather")
   p_load_current_gh("gagolews/stringi")
