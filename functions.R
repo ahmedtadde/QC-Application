@@ -11,6 +11,7 @@ libraries <- function(){
   p_load_current_gh("hadley/dplyr")
   p_load_current_gh("hadley/readxl")
   p_load_current_gh("Rdatatable/data.table")
+  p_load_current_gh("RcppCore/Rcpp")
   p_load_current_gh("rstudio/DT")
   p_load_current_gh("rstudio/shiny")
   p_load_current_gh("rstudio/shinythemes")
