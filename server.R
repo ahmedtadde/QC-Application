@@ -1,5 +1,4 @@
-source('functions.R')
-libraries()
+
 WD <- getwd()
 shinyServer(function(input, output, session) {
   
