@@ -11,13 +11,17 @@ Go to this [page](https://cran.rstudio.com/) and download the latest version of 
 Open your newly installed/updated R software. Copy the following lines of code:
 ```
 # Install and Load Pacman library
-if(!require("pacman")) install.packages("pacman",dependencies = T)
+Make sure your current packages are up to date
+update.packages()
+if(!require("devtools")) install.packages("devtools",dependencies = T)
+library(devtools)
+if(!require("pacman")) install_github("trinker/pacman")
 library(pacman)
 
 # Install OR Load DT,shiny,and tm libraries
-p_load('DT')
-p_load('shiny')
-p_load('tm')
+p_load_current_gh('DT')
+p_load_current_gh('shiny')
+p_load_current_gh('tm')
 
 # Run Application
 runGitHub("QC-Application","ahmedtadde")
