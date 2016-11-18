@@ -3,7 +3,7 @@ libraries <- function(){
   library(pacman)
   p_load(tools) 
   p_load(bit64)
-  p_load_current_gh("wesm/feather")
+  p_load_current_gh("wesm/feather/R")
   p_load_current_gh("gagolews/stringi")
   p_load_current_gh("tidyverse/stringr")
   p_load_current_gh("tidyverse/tidyr")
