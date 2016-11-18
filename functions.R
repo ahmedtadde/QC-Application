@@ -1,25 +1,25 @@
 libraries <- function(){
-  if(!require("pacman")) install.packages("pacman",dependencies = T)
+  if(!require("pacman")) install_github("trinker/pacman")
   library(pacman)
-  p_load(tools)
-  p_load(bit64)
-  p_load(feather)
-  p_load(stringi)
-  p_load(stringr)
-  p_load(tidyr)
-  p_load(plyr)
-  p_load(dplyr)
-  p_load(data.table)
-  p_load(DT)
-  p_load(shiny)
-  p_load(shinythemes)
-  p_load(foreign)
-  p_load(readxl)
-  p_load(foreach)
-  p_load(snow)
-  p_load(doSNOW)
+  p_load_current_gh(tools)
+  p_load_current_gh(bit64)
+  p_load_current_gh(feather)
+  p_load_current_gh(stringi)
+  p_load_current_gh(stringr)
+  p_load_current_gh(tidyr)
+  p_load_current_gh(plyr)
+  p_load_current_gh(dplyr)
+  p_load_current_gh(data.table)
+  p_load_current_gh(DT)
+  p_load_current_gh(shiny)
+  p_load_current_gh(shinythemes)
+  p_load_current_gh(foreign)
+  p_load_current_gh(readxl)
+  p_load_current_gh(foreach)
+  p_load_current_gh(snow)
+  p_load_current_gh(doSNOW)
   registerDoSNOW(makeCluster(detectCores()))
-  p_load(doParallel)
+  p_load_current_gh(doParallel)
   registerDoParallel(makeCluster(detectCores()))
   
 }
@@ -28,8 +28,8 @@ libraries <- function(){
 
 toCharacter<- function(data){
   
-  library(stringi)
-  library(data.table)
+  p_load_current_gh(stringi)
+  p_load_current_gh(data.table)
   
   data <- data.table(data)
   colNames <- names(data)
@@ -44,16 +44,16 @@ toCharacter<- function(data){
 
 
 ReportTypeInteger <- function(x){
-  library(stringi)
+  p_load_current_gh(stringi)
   if(!is.na(stri_split(as.character(x), fixed = "\\.")[[1]][1])){
     return(as.integer(stri_trim(stri_split(as.character(x),fixed = "\\.")[[1]][1])))
   }
 }
 
 ReportTypeDescription <- function(x,data){
-  library(dplyr)
-  library(data.table)
-  library(stringi)
+  p_load_current_gh(dplyr)
+  p_load_current_gh(data.table)
+  p_load_current_gh(stringi)
   
   df <- data %>% filter(data[[1]] %in% x)
   return(stri_trim(df$Description))
@@ -62,10 +62,10 @@ ReportTypeDescription <- function(x,data){
 
 
 getDATA <- function(filename){
-  library(data.table)
-  library(readxl)
-  library(tools)
-  library(parallel)
+  p_load_current_gh(data.table)
+  p_load_current_gh(readxl)
+  p_load_current_gh(tools)
+  p_load_current_gh(parallel)
   
   `%notin%` <-  Negate(`%in%`)
   
@@ -144,11 +144,11 @@ getASCII <- function(path){
 
 
 getCUTPOINTS <- function(path){
-  library(dplyr)
-  library(data.table)
-  library(stringi)
-  library(foreach)
-  library(parallel)
+  p_load_current_gh(dplyr)
+  p_load_current_gh(data.table)
+  p_load_current_gh(stringi)
+  p_load_current_gh(foreach)
+  p_load_current_gh(parallel)
   
   
   table <- fread(path,strip.white = T,na.strings = c(""," ","NA",0), stringsAsFactors = F)
@@ -234,7 +234,7 @@ getCUTPOINTS <- function(path){
 
 getCompareFiles <- function(path){
   
-  library('readxl')
+  p_load_current_gh('readxl')
   
   foreach(k = 1:length(path)) %do%{
     if(file_ext(path[k]) %in% "csv"| file_ext(path[k]) %in% "txt"){
