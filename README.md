@@ -11,7 +11,7 @@ Go to this [page](https://cran.rstudio.com/) and download the latest version of 
 Open your newly installed/updated R software. Copy the following lines of code:
 ```
 # Install the Shiny Library
-if(!require(shiny)) install.packages(shiny)
+if(!require('shiny')) install.packages('shiny')
 library(shiny
 # Run Application
 runGitHub("QC-Application","ahmedtadde")
