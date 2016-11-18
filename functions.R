@@ -49,7 +49,7 @@ toCharacter<- function(data){
 
 
 ReportTypeInteger <- function(x){
-  p_load_current_gh(stringi)
+  library(stringi)
   if(!is.na(stri_split(as.character(x), fixed = "\\.")[[1]][1])){
     return(as.integer(stri_trim(stri_split(as.character(x),fixed = "\\.")[[1]][1])))
   }
